@@ -220,10 +220,10 @@ k8s    = 컨테이너를 대규모로 운영하는 오케스트레이션 플랫�
 ## 문서 구성
 
 - **WSL/PowerShell/Docker/Kubernetes 치트시트**: `0. wsl_po wershell_docker_k8s_cheatsheet.md`
-- **VirtualBox 설치 안내**: `1. virtualbox.md`
-- **VirtualBox Host-Only 네트워크 구성 가이드**: `1. virtualbox_hostonly_k8s_guide.md`
-- **K3s 기본 설치 메모**: `2. k3s.md`
-- **K3s 멀티노드 설치 가이드**: `2. k3s_multinode_hostonly_guide.md`
+- **UTM 설치 안내**: `1. utm.md`
+- **UTM Shared Network 네트워크 구성 가이드**: `1. utm_shared_network_k8s_guide.md`
+- **K3s 기본 설치 메모 (UTM)**: `2. utm_k3s.md`
+- **K3s 멀티노드 설치 가이드 (UTM)**: `2. utm_k3s_multinode_guide.md`
 - **SSH 접속 메모**: `3. ssh.md`
 - **SSH 접속/트러블슈팅 가이드**: `3. ssh_access_troubleshooting_guide.md`
 - **Ingress/대시보드 구성 메모**: `4. dashboard.md`
@@ -245,3 +245,24 @@ k8s    = 컨테이너를 대규모로 운영하는 오케스트레이션 플랫�
 5. **HPA 오토스케일 실습**으로 자동 확장 동작을 확인합니다.
 
 필요한 문서만 발췌하여 참고해도 되며, 각 문서는 독립적으로 읽을 수 있도록 구성되어 있습니다.
+
+---
+
+## 실습 리소스 정리
+
+cp1 또는 control-plane(여기서는 k8s-master) SSH 세션에서 아래 순서대로 실행
+
+```bash
+kubectl delete ingress whoami-ing
+kubectl delete svc nginx-nodeport
+kubectl delete hpa nginx-hpa
+kubectl delete deploy nginx
+kubectl delete svc nginx
+kubectl delete deploy whoami
+kubectl delete svc whoami
+```
+
+확인:
+```bash
+kubectl get all
+```
