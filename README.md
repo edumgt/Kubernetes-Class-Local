@@ -60,6 +60,97 @@ Pod: 하나 이상의 컨테이너를 그룹화한 최소 배포 단위입니다
 장점: 자동 복구(self-healing), 로드 밸런싱, 롤링 업데이트를 지원합니다.
 단점: 학습 곡선이 가파르며, 초기 설정이 복잡합니다.
 ```
+---
+### Kubelet
+kubelet은 **각 노드(Worker/Control-plane 노드 포함)에 올라가는 쿠버네티스 “노드 에이전트”**입니다. 한마디로 **“이 노드에서 Pod를 실제로 띄우고, 상태를 계속 보고하는 담당자”**예요.
+
+kubelet이 하는 일
+1) Pod를 “실제로 실행”시키는 실행 관리자
+
+스케줄러가 “이 Pod를 이 노드에 올려라”라고 결정하면,
+
+API 서버를 통해 그 지시가 노드에 전달되고,
+
+kubelet이 그 Pod를 **컨테이너 런타임(containerd/CRI-O 등)**에 요청해서 실행합니다.
+
+이미지 pull, 컨테이너 생성/시작/정지
+
+2) 원하는 상태를 유지(자가치유의 핵심 축)
+
+kubelet은 노드에 배치된 Pod가 스펙대로 살아있는지 계속 확인합니다.
+
+컨테이너가 죽으면 재시작 정책에 따라 다시 띄웁니다.
+
+Readiness/Liveness Probe 결과에 따라 “트래픽 받을 준비 됐는지/죽었는지”를 반영합니다.
+
+3) 노드/Pod 상태를 API 서버에 보고
+
+노드의 Ready/NotReady, 디스크 압박(DiskPressure) 같은 상태
+
+각 Pod의 상태(Running/CrashLoopBackOff 등)
+
+이벤트(Event) 생성(예: 이미지 풀 실패, 프로브 실패)
+
+4) 네트워크/볼륨을 Pod에 붙이는 실행 단계 담당
+
+CNI 플러그인을 호출해 Pod 네트워크 인터페이스를 붙이고 IP를 할당받게 합니다.
+
+PVC를 쓰는 Pod라면 CSI/볼륨 플러그인 경로를 통해 노드에 볼륨 attach/mount가 이뤄지도록 관여합니다(환경에 따라 node plugin이 따로 있음).
+
+5) 리소스/메트릭의 “원천”에 가까운 역할
+
+kubectl top nodes/pods에서 metrics-server가 kubelet로부터 리소스 사용량을 수집합니다.
+
+즉 kubelet은 노드에서 돌아가는 컨테이너들의 사용량 정보를 제공하는 쪽입니다(수집/집계는 metrics-server).
+
+kubelet이 “어디에” 있고 “무엇과” 붙어 있나
+
+위치: 각 노드
+
+붙는 대상:
+
+kube-apiserver: “지시를 받고, 상태를 보고”
+
+container runtime(containerd/CRI-O): “컨테이너 실행”
+
+CNI: “Pod 네트워크 구성”
+
+CSI/볼륨 시스템: “스토리지 마운트”
+
+(옵션) metrics-server: “리소스 사용량 제공 대상”
+
+자주 헷갈리는 포인트
+
+스케줄러가 “어느 노드에 배치할지” 결정
+
+kubelet은 “결정된 Pod를 그 노드에서 실제로 띄우고 유지”
+
+그래서 kubelet이 없으면 노드는 사실상 “일 못 하는 노드”가 됩니다.
+
+### 실전 확인 명령(노드에서)
+```
+kubelet 상태
+sudo systemctl status kubelet
+```
+---
+kubelet.service could not be found가 뜨는 건 **kubeadm 방식이 아니라 k3s(또는 rke2/microk8s 같은 “통합 배포판”)**일 때 아주 흔한 상황입니다.
+
+당신 로그/이전 맥락에 /etc/rancher/k3s/k3s.yaml이 있었죠 → 이 노드는 k3s 기반이고, 이 경우 kubelet이 별도 systemd 서비스(kubelet.service)로 존재하지 않고, k3s 서비스 안에서 같이 떠요.
+
+1) k3s에서 “kubelet은 어떻게 에이전팅하나?”
+
+systemd 서비스: k3s.service(서버/컨트롤플레인) 또는 k3s-agent.service(워커)
+
+그 서비스가 실행되면 내부적으로 kubelet, kube-proxy(옵션), CNI 등을 함께 실행합니다.
+
+### 그래서 systemctl status kubelet이 아니라 **systemctl status k3s**를 봐야 합니다
+---
+
+
+로그(문제 원인 찾을 때 핵심)
+sudo journalctl -u kubelet -n 200 --no-pager
+---
+
 
 # VM, Docker, Container, OCI, Kubernetes(k8s) 차이점 비교 정리
 
