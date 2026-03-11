@@ -1,6 +1,7 @@
 ## 학습 동선 (재배치)
 - 학습용 커리큘럼 인덱스: [CURRICULUM.md](CURRICULUM.md)
 - 강의 폴더: `lecture01` ~ `lecture15`
+- 실습 폴더(기존 `00~10`)는 해당 강의의 `practice/` 하위로 통합됨
 
 ## Kubernetes의 어원
 ```

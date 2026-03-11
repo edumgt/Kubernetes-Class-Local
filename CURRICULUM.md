@@ -1,9 +1,11 @@
 # Kubernetes 학습용 커리큘럼 (Lecture 01~15)
 
 중복/유사 주제 문서는 같은 강의 폴더로 묶어 학습 흐름에 맞게 재배치했습니다.
+`00~10` 실습 비교/통합 기준은 [PRACTICE_MAPPING.md](PRACTICE_MAPPING.md)에서 확인할 수 있습니다.
 
 ## Lecture 01. 실습 환경 사전 개요
 - [0. wsl_po wershell_docker_k8s_cheatsheet.md](lecture01/0.%20wsl_po%20wershell_docker_k8s_cheatsheet.md)
+- 연계 실습: [00-Docker-Images](lecture01/practice/00-Docker-Images)
 
 ## Lecture 02. VirtualBox 기반 실습 환경 구축
 - [1. virtualbox.md](lecture02/1.%20virtualbox.md)
@@ -32,17 +34,21 @@
 ## Lecture 08. Node/Pod 핵심 개념과 상태
 - [7. Node_Pod.md](lecture08/7.%20Node_Pod.md)
 - [7.3 Kubernetes Pod 상태.md](lecture08/7.3%20Kubernetes%20Pod%20%EC%83%81%ED%83%9C.md)
+- 연계 실습: [01-Kubernetes-Architecture](lecture08/practice/01-Kubernetes-Architecture), [02-PODs-with-kubectl](lecture08/practice/02-PODs-with-kubectl)
 
 ## Lecture 09. Label/Annotation 메타데이터
 - [9. k8s-labels-annotations.md](lecture09/9.%20k8s-labels-annotations.md)
+- 연계 실습: [03-ReplicaSets-with-kubectl](lecture09/practice/03-ReplicaSets-with-kubectl)
 
 ## Lecture 10. HPA 오토스케일과 부하 테스트
 - [6. AutoScaleUp_Test.md](lecture10/6.%20AutoScaleUp_Test.md)
 - [6.5 fortio_k3s_notes.md](lecture10/6.5%20fortio_k3s_notes.md)
+- 연계 실습: [04-Deployments-with-kubectl](lecture10/practice/04-Deployments-with-kubectl)
 
 ## Lecture 11. Manifest와 Probe 기반 안정성
 - [6.1 6번 실행 후 후속 테스트.md](lecture11/6.1%206%EB%B2%88%20%EC%8B%A4%ED%96%89%20%ED%9B%84%20%ED%9B%84%EC%86%8D%20%ED%85%8C%EC%8A%A4%ED%8A%B8.md)
 - [7.2 LivenessProbe_Restart_Explanation.md](lecture11/7.2%20LivenessProbe_Restart_Explanation.md)
+- 연계 실습: [06-YAML-Basics](lecture11/practice/06-YAML-Basics), [07-PODs-with-YAML](lecture11/practice/07-PODs-with-YAML), [08-ReplicaSets-with-YAML](lecture11/practice/08-ReplicaSets-with-YAML), [09-Deployments-with-YAML](lecture11/practice/09-Deployments-with-YAML), [10-Services-with-YAML](lecture11/practice/10-Services-with-YAML)
 
 ## Lecture 12. 노드/클러스터 네트워크 내부 동작
 - [6.4 k3s_node_internal_clusterip_summary.md](lecture12/6.4%20k3s_node_internal_clusterip_summary.md)
@@ -51,6 +57,7 @@
 ## Lecture 13. Ingress 라우팅 디버깅 실습
 - [7.1.1 k3s-traefik-ingress-routing-debug.md](lecture13/7.1.1%20k3s-traefik-ingress-routing-debug.md)
 - [7.1.2 test-local-apache-ingress.md](lecture13/7.1.2%20test-local-apache-ingress.md)
+- 연계 실습: [05-Services-with-kubectl](lecture13/practice/05-Services-with-kubectl)
 
 ## Lecture 14. 종합 장애 분석 실습
 - [7.1 k3s-edu-labs-troubleshooting.md](lecture14/7.1%20k3s-edu-labs-troubleshooting.md)
