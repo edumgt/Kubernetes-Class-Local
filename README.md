@@ -95,6 +95,17 @@ sudo systemctl status k3s-agent
 | Azure | AKS | ACR | ACI |
 | Oracle Cloud | OKE | OCIR | Virtual Nodes |
 
+## GitHub Codespaces 실습
+1. GitHub에서 이 저장소를 Codespaces로 엽니다.
+2. 컨테이너 생성 후 `postCreateCommand`가 실행되어 `kubectl`, `helm`, `kind`를 설치합니다.
+3. 기본 kind 클러스터(`kind-lecture`)가 없으면 자동 생성됩니다.
+4. 클러스터 확인:
+```bash
+kubectl config current-context
+kubectl get nodes
+kubectl get ns lecture
+```
+
 ## 활용 방법
 1. `lecture01`부터 `lecture15` 순서로 진행합니다.
 2. 각 lecture의 `README.md`에서 목표/순서를 먼저 확인합니다.
