@@ -142,6 +142,94 @@ EOF
   log "metallb ready: pool ${pool_start}-${pool_end}"
 }
 
+install_dashboard() {
+  local dashboard_port="${DASHBOARD_PORT:-8443}"
+
+  if helm status kubernetes-dashboard -n kubernetes-dashboard >/dev/null 2>&1; then
+    log "kubernetes-dashboard already installed, skipping"
+    return 0
+  fi
+
+  log "installing kubernetes-dashboard via helm"
+  helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/ >/dev/null
+  helm repo update kubernetes-dashboard >/dev/null
+  helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard \
+    --create-namespace \
+    --namespace kubernetes-dashboard \
+    --set kong.proxy.type=LoadBalancer \
+    --wait --timeout 180s
+
+  # Wait for MetalLB to assign an IP to the LoadBalancer service
+  log "waiting for dashboard LoadBalancer IP"
+  local dashboard_ip=""
+  local retries=30
+  while [[ -z "${dashboard_ip}" && ${retries} -gt 0 ]]; do
+    dashboard_ip="$(kubectl get svc -n kubernetes-dashboard \
+      -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.status.loadBalancer.ingress[0].ip}{end}' \
+      2>/dev/null || true)"
+    if [[ -z "${dashboard_ip}" ]]; then
+      sleep 2
+      retries=$(( retries - 1 ))
+    fi
+  done
+
+  if [[ -z "${dashboard_ip}" ]]; then
+    log "WARNING: dashboard LoadBalancer IP not assigned; skipping proxy setup"
+    return 0
+  fi
+
+  # Forward the host port to the MetalLB IP using socat.
+  # A systemd service keeps the forward alive across Codespaces restarts.
+  sudo_cmd apt-get install -y --no-install-recommends socat
+
+  sudo_cmd tee /etc/systemd/system/dashboard-proxy.service >/dev/null <<SERVICE
+[Unit]
+Description=Kubernetes Dashboard port forward via MetalLB
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/socat TCP-LISTEN:${dashboard_port},bind=127.0.0.1,fork,reuseaddr TCP:${dashboard_ip}:443
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+  sudo_cmd systemctl daemon-reload
+  sudo_cmd systemctl enable --now dashboard-proxy.service
+  log "dashboard proxy: localhost:${dashboard_port} -> ${dashboard_ip}:443"
+
+  # Service account with cluster-admin rights for dashboard login
+  kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dashboard-admin
+  namespace: kubernetes-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dashboard-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: dashboard-admin
+    namespace: kubernetes-dashboard
+EOF
+
+  local token
+  token="$(kubectl create token dashboard-admin -n kubernetes-dashboard --duration=720h)"
+  install -m 600 /dev/null /tmp/dashboard-token.txt
+  printf '%s\n' "${token}" > /tmp/dashboard-token.txt
+  log "dashboard token : cat /tmp/dashboard-token.txt"
+  log "dashboard URL   : https://localhost:${dashboard_port}"
+}
+
 ensure_kind_cluster() {
   if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
     log "docker daemon is not available, skip kind cluster bootstrap"
@@ -164,6 +252,7 @@ ensure_kind_cluster() {
   kubectl taint nodes --all node-role.kubernetes.io/control-plane- 2>/dev/null || true
   kubectl create namespace lecture --dry-run=client -o yaml | kubectl apply -f -
   install_metallb
+  install_dashboard
   log "k8s context ready: kind-${KIND_CLUSTER_NAME}"
 }
 
