@@ -8,6 +8,20 @@ Kubernetes 실습 환경을 구성하는 방법을 안내합니다.
 
 ---
 
+## 📌 빠른 시작 - cp1 Control Plane 서버 구성
+
+`vmnet1 (Host-Only)` 고정 IP `192.168.56.10`과 `vmnet8 (NAT)` 인터넷 연결을 함께 사용하는 cp1 서버 구성 방법:
+
+➡️ **[cp1 서버 생성 및 고정 IP 설정 가이드](cp1-setup-guide.md)**
+
+이 가이드는 다음을 포함합니다:
+- vmnet1 네트워크 설정
+- cp1 VM 생성
+- Ubuntu 24.04 Netplan으로 고정 IP 구성
+- Kubernetes 설치 준비
+
+---
+
 ## 1. VMware 다운로드 및 설치
 
 ### 공식 다운로드 페이지
@@ -231,7 +245,7 @@ VMware Workstation:
   Edit → Virtual Network Editor → VMnet8 (NAT) → NAT Settings
   → Port Forwarding → Add
      Host Port: 2222
-     VM IP:     <VM의 NAT IP, 예: 192.168.182.131>
+     VM IP:     <VM의 NAT IP, 예: 192.168.146.10>
      VM Port:   22
 ```
 
