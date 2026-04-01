@@ -142,6 +142,133 @@ spec:
 > 온프렘/로컬(k3s, kind, bare metal)에서는 “클라우드 LB가 없으니” `EXTERNAL-IP`가 안 뜨는 게 정상입니다.  
 > 이때는 **MetalLB**(bare metal)나 **k3s의 servicelb(klipper-lb)** 같은 구성요소가 있어야 “LoadBalancer가 동작”합니다.
 
+### kubeadm + VMware 실습에서 MetalLB 붙이기
+
+`kubeadm` 기반 VM 실습에서는 클라우드 LB가 없으므로, `type: LoadBalancer` Service를 실제로 외부 IP로 노출하려면 MetalLB가 필요합니다.
+
+#### (1) MetalLB 설치
+```bash
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.3/config/manifests/metallb-native.yaml
+kubectl get pods -n metallb-system
+```
+
+#### (2) IPAddressPool / L2Advertisement 구성
+- 아래 예시는 내부망 NIC가 `ens33`, 내부망 대역이 `192.168.111.0/24` 인 경우입니다.
+- DHCP와 충돌하지 않도록 **여유 IP 대역**을 사용해야 합니다.
+
+```yaml
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: lab-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.111.240-192.168.111.250
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: lab-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - lab-pool
+  interfaces:
+  - ens33
+  nodeSelectors:
+  - matchLabels:
+      kubernetes.io/hostname: cp1
+```
+
+```bash
+kubectl apply -f metallb-pool.yaml
+kubectl get ipaddresspools,l2advertisements -n metallb-system
+```
+
+#### (3) control-plane 노드 라벨 주의
+- `kubeadm` control-plane 노드에는 아래 라벨이 붙어 있을 수 있습니다.
+- 이 라벨이 있으면 MetalLB가 외부 LB 광고 노드에서 제외할 수 있습니다.
+
+```bash
+kubectl get node cp1 --show-labels
+kubectl label node cp1 node.kubernetes.io/exclude-from-external-load-balancers-
+```
+
+#### (4) LoadBalancer Service 예시
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+    tier: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+        tier: web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.27-alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+```
+
+```bash
+kubectl apply -f nginx-lb.yaml
+kubectl get svc nginx-lb
+kubectl describe svc nginx-lb
+```
+
+정상이라면 `EXTERNAL-IP` 에 `192.168.111.240` 같은 VIP가 할당됩니다.
+
+#### (5) 실제 접속 URL
+- MetalLB LoadBalancer: `http://<EXTERNAL-IP>`
+- 예: `http://192.168.111.240`
+- Windows `hosts` 파일을 쓰고 싶다면:
+
+```text
+192.168.111.240 nginx-lb.local
+```
+
+브라우저 접속:
+
+```text
+http://nginx-lb.local/
+```
+
+#### (6) 빠른 문제 진단
+```bash
+kubectl get svc -A
+kubectl describe svc nginx-lb
+kubectl get pods -n metallb-system -o wide
+kubectl logs -n metallb-system -l component=speaker --tail=200
+```
+
+- `EXTERNAL-IP` 가 `<pending>` 이면: MetalLB 설정 또는 pool 미적용 가능성
+- `IPAllocated` 는 보이는데 접속이 안 되면: `L2Advertisement`, 인터페이스(`ens33`), control-plane 제외 라벨을 우선 확인
+- 임시 우회가 필요하면 `NodePort` 로도 접근 가능
+
 ---
 
 ## 2) ExternalName Service (K8s Service를 “외부 DNS 이름(CNAME)”으로 매핑)
