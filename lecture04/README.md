@@ -68,11 +68,13 @@ kind: Service
 metadata:
   name: nginx-svc
 spec:
+  type: NodePort
   selector:
-    app: nginx       # app=nginx 라벨이 있는 파드로 트래픽 보냄
+    app: nginx
   ports:
   - port: 80
     targetPort: 80
+    nodePort: 30081
 ```
 
 ### 2-2) 라벨로 조회/필터
